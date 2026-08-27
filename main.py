@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Header, status
 from database import supabase
 from schemas import UserAuth
 
@@ -64,6 +64,33 @@ def login(credentials: UserAuth):
             detail={"error": "Invalid login credentials"}
         )
 
+@app.get("/public/info", status_code=status.HTTP_200_OK)
+def get_public_info():
+    return {"message": "Welcome stranger! This info is public."}
+
+
+@app.get("/protected/profile", status_code=status.HTTP_200_OK)
+def get_profile(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Access token required"}
+        )
+    
+    token = authorization.split("Bearer ")[1].strip()
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Access token required"}
+        )
+    
+    return {
+        "message": "Token received successfully",
+        "token": token
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
