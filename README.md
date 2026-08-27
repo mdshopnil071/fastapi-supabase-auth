@@ -68,6 +68,4 @@ Interactive API Documentation (Swagger UI)
 Access interactive API testing at http://127.0.0.1:8000/docs.
 
 Swagger UI Screenshot
-<p align="center">
-  <img src="swagger-ui.png" alt="Swagger UI Screenshot" width="100%">
-</p>
+![Swagger UI Screenshot](./swagger-ui.png)
