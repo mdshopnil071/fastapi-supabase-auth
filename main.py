@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, status
 from database import supabase
 from schemas import UserAuth
+from typing import Optional
 
 app = FastAPI(title="Supabase Authentication API")
 
@@ -70,7 +71,7 @@ def get_public_info():
 
 
 @app.get("/protected/profile", status_code=status.HTTP_200_OK)
-def get_profile(authorization: str = Header(None)):
+def get_profile(authorization: Optional[str] = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,19 +79,35 @@ def get_profile(authorization: str = Header(None)):
         )
     
     token = authorization.split("Bearer ")[1].strip()
-    
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"error": "Access token required"}
         )
     
-    return {
-        "message": "Token received successfully",
-        "token": token
-    }
+    try:
+        user_response = supabase.auth.get_user(token)
+        user = user_response.user
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": "Invalid or expired token"}
+            )
+            
+        return {
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "created_at": str(user.created_at)
+            }
+        }
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Invalid or expired token"}
+        )
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
