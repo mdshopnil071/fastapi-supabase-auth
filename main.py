@@ -108,6 +108,26 @@ def get_profile(authorization: Optional[str] = Header(default=None)):
             detail={"error": "Invalid or expired token"}
         )
 
+
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(current_user: dict = Depends(get_current_user)):
+    try:
+        supabase.auth.sign_out()
+        return None
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error": str(e)}
+        )
+
+@app.get("/protected/dashboard")
+def get_dashboard(current_user: dict = Depends(get_current_user)):
+    user = current_user["user"]
+    return {
+        "message": f"Welcome to your private dashboard, {user.email}!",
+        "status": "authenticated"
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
