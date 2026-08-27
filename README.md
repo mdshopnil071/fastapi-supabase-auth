@@ -34,14 +34,18 @@ source venv/bin/activate
 
 # Install required packages
 pip install fastapi uvicorn supabase python-dotenv pydantic
+```
 
 Environment Variables Setup:
 Create a .env file in the root directory of the project:
 ```bash
 touch .env
-
+```
 Add your Supabase credentials into .env:
+
 SUPABASE_URL=[https://your-supabase-project-id.supabase.co](https://your-supabase-project-id.supabase.co)
+
+
 SUPABASE_KEY=your-supabase-anon-key
 
 Note: Make sure .env is listed in your .gitignore file to avoid exposing sensitive keys.
@@ -50,7 +54,7 @@ Running the Application
 Start the local Uvicorn development server:
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
+```
 Once running, access the server at http://127.0.0.1:8000
 
 API Reference Table
@@ -62,6 +66,7 @@ API Reference Table
 | `/protected/profile` | `GET` | ✅ Yes | `200 OK` | Fetches the authenticated user's profile info. |
 | `/protected/dashboard` | `GET` | ✅ Yes | `200 OK` | Retrieves personalized dashboard metrics. |
 | `/auth/logout` | `POST` | ✅ Yes | `204 No Content` | Invalidates current user session on Supabase. |
+
 
 
 Interactive API Documentation (Swagger UI)
