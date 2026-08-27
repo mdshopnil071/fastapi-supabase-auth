@@ -1,9 +1,42 @@
-from fastapi import FastAPI, HTTPException, Header, status
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Header, Depends, status
+from fastapi.security import HTTPBearer
 from database import supabase
 from schemas import UserAuth
-from typing import Optional
 
 app = FastAPI(title="Supabase Authentication API")
+security = HTTPBearer()
+
+def get_current_user(authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Access token required"}
+        )
+    
+    token = authorization.split("Bearer ")[1].strip()
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Access token required"}
+        )
+    
+    try:
+        user_response = supabase.auth.get_user(token)
+        user = user_response.user
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": "Invalid or expired token"}
+            )
+            
+        return {"user": user, "token": token}
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "Invalid or expired token"}
+        )
 
 @app.post("/auth/signup", status_code=status.HTTP_201_CREATED)
 def signup(credentials: UserAuth):
@@ -70,46 +103,18 @@ def get_public_info():
     return {"message": "Welcome stranger! This info is public."}
 
 
-@app.get("/protected/profile", status_code=status.HTTP_200_OK)
-def get_profile(authorization: Optional[str] = Header(default=None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"error": "Access token required"}
-        )
-    
-    token = authorization.split("Bearer ")[1].strip()
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"error": "Access token required"}
-        )
-    
-    try:
-        user_response = supabase.auth.get_user(token)
-        user = user_response.user
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"error": "Invalid or expired token"}
-            )
-            
-        return {
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "created_at": str(user.created_at)
-            }
+@app.get("/protected/profile", status_code=status.HTTP_200_OK, dependencies=[Depends(security)])
+def get_profile(current_user: dict = Depends(get_current_user)):
+    user = current_user["user"]
+    return {
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "created_at": str(user.created_at)
         }
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"error": "Invalid or expired token"}
-        )
+    }
 
-
-@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])
 def logout(current_user: dict = Depends(get_current_user)):
     try:
         supabase.auth.sign_out()
@@ -120,7 +125,7 @@ def logout(current_user: dict = Depends(get_current_user)):
             detail={"error": str(e)}
         )
 
-@app.get("/protected/dashboard")
+@app.get("/protected/dashboard", status_code=status.HTTP_200_OK, dependencies=[Depends(security)])
 def get_dashboard(current_user: dict = Depends(get_current_user)):
     user = current_user["user"]
     return {
